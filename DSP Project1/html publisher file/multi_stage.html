@@ -1,0 +1,352 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>multi_stage</title><meta name="generator" content="MATLAB 9.0"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2016-10-10"><meta name="DC.source" content="multi_stage.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Three stages for upsampling</a></li><li><a href="#3">Three stages for downsampling, filter signal before downsample</a></li></ul></div><pre class="codeinput"><span class="comment">% Multi stage</span>
+<span class="comment">% Tom Koch, Mateen Nemati, Shuyang Yu</span>
+
+<span class="comment">% y is the sampled data, Fs is the sampled rate</span>
+y = [];
+Fs = 0;
+
+[y, Fs] = audioread(<span class="string">'Wagner.wav'</span>);
+<span class="comment">% sound(y,Fs)</span>
+
+ <span class="comment">% 24000/ 11025 = 320 / 147</span>
+ <span class="comment">% split 320 into 8, 4, 10;  split 147 into 7, 7, 3.</span>
+ <span class="comment">% variable l is the computation for multiplies</span>
+ <span class="comment">% variable a is the computation for additions</span>
+</pre><h2>Three stages for upsampling<a name="2"></a></h2><pre class="codeinput"> <span class="comment">% First upsample by 8</span>
+ y = upsample(y, 8);
+
+ <span class="comment">% create first digital filter, (w: cutoff frequency)</span>
+ w = (1/8);
+ uf1 = designfilt(<span class="string">'lowpassfir'</span>,<span class="string">'PassbandFrequency'</span>,w, <span class="keyword">...</span>
+         <span class="string">'StopbandFrequency'</span>,1.2*w,<span class="string">'PassbandRipple'</span>,0.1, <span class="keyword">...</span>
+         <span class="string">'StopbandAttenuation'</span>,70,<span class="string">'DesignMethod'</span>,<span class="string">'kaiserwin'</span>);
+
+ <span class="comment">%after the first filter</span>
+ y = filter(uf1, y);
+
+
+ <span class="comment">% l is multiplies</span>
+ l = length(uf1)*8
+ <span class="comment">% a is additions</span>
+ a = length(uf1)*8 -1
+
+ <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+ <span class="comment">%Second upsample y 4</span>
+ y = upsample(y,4);
+
+ <span class="comment">% create second digital filter, (w: cutoff frequency)</span>
+ w = (1/4);
+ uf2 = designfilt(<span class="string">'lowpassfir'</span>,<span class="string">'PassbandFrequency'</span>,w, <span class="keyword">...</span>
+         <span class="string">'StopbandFrequency'</span>,1.2*w,<span class="string">'PassbandRipple'</span>,0.1, <span class="keyword">...</span>
+         <span class="string">'StopbandAttenuation'</span>,70,<span class="string">'DesignMethod'</span>,<span class="string">'kaiserwin'</span>);
+
+ <span class="comment">%after the second filter</span>
+ y = filter(uf2, y);
+ l = l + length(uf2)* 4
+ a = a + length(uf2)*4-1
+ <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+ <span class="comment">%Third upsample y 10</span>
+ y = upsample(y,10);
+
+ <span class="comment">% create second digital filter, (w: cutoff frequency)</span>
+ w = (1/10);
+ uf3 = designfilt(<span class="string">'lowpassfir'</span>,<span class="string">'PassbandFrequency'</span>,w, <span class="keyword">...</span>
+         <span class="string">'StopbandFrequency'</span>,1.2*w,<span class="string">'PassbandRipple'</span>,0.1, <span class="keyword">...</span>
+         <span class="string">'StopbandAttenuation'</span>,70,<span class="string">'DesignMethod'</span>,<span class="string">'kaiserwin'</span>);
+
+ <span class="comment">%after the second filter</span>
+ y = filter(uf3, y);
+ l = l + length(uf3)*10
+ a = a + length(uf3)*10-1
+</pre><pre class="codeoutput">
+l =
+
+     8
+
+
+a =
+
+     7
+
+
+l =
+
+    12
+
+
+a =
+
+    10
+
+
+l =
+
+    22
+
+
+a =
+
+    19
+
+</pre><h2>Three stages for downsampling, filter signal before downsample<a name="3"></a></h2><p>create first filter</p><pre class="codeinput">w = (1/7);
+df1 = designfilt(<span class="string">'lowpassfir'</span>,<span class="string">'PassbandFrequency'</span>,w, <span class="keyword">...</span>
+         <span class="string">'StopbandFrequency'</span>,1.2*w,<span class="string">'PassbandRipple'</span>,0.1, <span class="keyword">...</span>
+         <span class="string">'StopbandAttenuation'</span>,70,<span class="string">'DesignMethod'</span>,<span class="string">'kaiserwin'</span>);
+
+<span class="comment">% after first filter</span>
+y = filter(df1, y);
+l = l+(length(df1)/7)
+a = a+ (length(df1)-1)
+
+<span class="comment">% now downsample by 7</span>
+y = downsample(y,7);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="comment">% create second filter</span>
+w = (1/7);
+df2 = designfilt(<span class="string">'lowpassfir'</span>,<span class="string">'PassbandFrequency'</span>,w, <span class="keyword">...</span>
+         <span class="string">'StopbandFrequency'</span>,1.2*w,<span class="string">'PassbandRipple'</span>,0.1, <span class="keyword">...</span>
+         <span class="string">'StopbandAttenuation'</span>,70,<span class="string">'DesignMethod'</span>,<span class="string">'kaiserwin'</span>);
+
+<span class="comment">% after second filter</span>
+y = filter(df2, y);
+
+l = l+(length(df2)/7)
+a = a+ (length(df2)-1)
+
+<span class="comment">% now downsample by 7</span>
+y = downsample(y,7);
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% create third filter</span>
+w = (1/3);
+df3 = designfilt(<span class="string">'lowpassfir'</span>,<span class="string">'PassbandFrequency'</span>,w, <span class="keyword">...</span>
+         <span class="string">'StopbandFrequency'</span>,1.2*w,<span class="string">'PassbandRipple'</span>,0.1, <span class="keyword">...</span>
+         <span class="string">'StopbandAttenuation'</span>,70,<span class="string">'DesignMethod'</span>,<span class="string">'kaiserwin'</span>);
+
+<span class="comment">% after third filter</span>
+y = filter(df3, y);
+l = l+(length(df3)/3)
+a = a+ (length(df3)-1)
+
+<span class="comment">% now downsample by 3</span>
+y = downsample(y,3);
+
+soundsc(y,24000);
+</pre><pre class="codeoutput">
+l =
+
+   22.1429
+
+
+a =
+
+    19
+
+
+l =
+
+   22.2857
+
+
+a =
+
+    19
+
+
+l =
+
+   22.6190
+
+
+a =
+
+    19
+
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% Multi stage
+% Tom Koch, Mateen Nemati, Shuyang Yu
+
+% y is the sampled data, Fs is the sampled rate
+y = [];
+Fs = 0;
+
+[y, Fs] = audioread('Wagner.wav');
+% sound(y,Fs)
+
+ % 24000/ 11025 = 320 / 147
+ % split 320 into 8, 4, 10;  split 147 into 7, 7, 3.
+ % variable l is the computation for multiplies
+ % variable a is the computation for additions
+
+ %% Three stages for upsampling
+
+ % First upsample by 8
+ y = upsample(y, 8);
+ 
+ % create first digital filter, (w: cutoff frequency)
+ w = (1/8);
+ uf1 = designfilt('lowpassfir','PassbandFrequency',w, ...
+         'StopbandFrequency',1.2*w,'PassbandRipple',0.1, ...
+         'StopbandAttenuation',70,'DesignMethod','kaiserwin');
+
+ %after the first filter
+ y = filter(uf1, y);
+ 
+ 
+ % l is multiplies
+ l = length(uf1)*8
+ % a is additions
+ a = length(uf1)*8 -1
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+ %Second upsample y 4
+ y = upsample(y,4);
+ 
+ % create second digital filter, (w: cutoff frequency)
+ w = (1/4);
+ uf2 = designfilt('lowpassfir','PassbandFrequency',w, ...
+         'StopbandFrequency',1.2*w,'PassbandRipple',0.1, ...
+         'StopbandAttenuation',70,'DesignMethod','kaiserwin');
+
+ %after the second filter
+ y = filter(uf2, y);
+ l = l + length(uf2)* 4
+ a = a + length(uf2)*4-1
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+ %Third upsample y 10
+ y = upsample(y,10);
+ 
+ % create second digital filter, (w: cutoff frequency)
+ w = (1/10);
+ uf3 = designfilt('lowpassfir','PassbandFrequency',w, ...
+         'StopbandFrequency',1.2*w,'PassbandRipple',0.1, ...
+         'StopbandAttenuation',70,'DesignMethod','kaiserwin');
+
+ %after the second filter
+ y = filter(uf3, y);
+ l = l + length(uf3)*10
+ a = a + length(uf3)*10-1
+%% Three stages for downsampling, filter signal before downsample
+% create first filter
+w = (1/7);
+df1 = designfilt('lowpassfir','PassbandFrequency',w, ...
+         'StopbandFrequency',1.2*w,'PassbandRipple',0.1, ...
+         'StopbandAttenuation',70,'DesignMethod','kaiserwin');
+
+% after first filter
+y = filter(df1, y);
+l = l+(length(df1)/7)
+a = a+ (length(df1)-1)
+
+% now downsample by 7
+y = downsample(y,7);
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% create second filter
+w = (1/7);
+df2 = designfilt('lowpassfir','PassbandFrequency',w, ...
+         'StopbandFrequency',1.2*w,'PassbandRipple',0.1, ...
+         'StopbandAttenuation',70,'DesignMethod','kaiserwin');
+
+% after second filter
+y = filter(df2, y);
+
+l = l+(length(df2)/7)
+a = a+ (length(df2)-1)
+
+% now downsample by 7
+y = downsample(y,7);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% create third filter
+w = (1/3);
+df3 = designfilt('lowpassfir','PassbandFrequency',w, ...
+         'StopbandFrequency',1.2*w,'PassbandRipple',0.1, ...
+         'StopbandAttenuation',70,'DesignMethod','kaiserwin');
+
+% after third filter
+y = filter(df3, y);
+l = l+(length(df3)/3)
+a = a+ (length(df3)-1)
+
+% now downsample by 3
+y = downsample(y,3);
+
+soundsc(y,24000);
+
+##### SOURCE END #####
+--></body></html>
